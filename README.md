@@ -14,13 +14,23 @@ Failover automatizado de DNS usando a API da Cloudflare.
 
 ## 🔧 Instalação
 
-1. Clone o repositório:
+1. Instale dependências necessárias (ex.: Debian/Ubuntu):
+```bash
+sudo apt update
+sudo apt install -y curl jq
+```
+Para CentOS/RHEL/Fedora use yum/dnf:
+```bash
+sudo dnf install -y curl jq
+```
+
+2. Clone o repositório:
 ```bash
 git clone https://github.com/marcianordrgs/cloudflare-dns-loadbalancer.git
 cd cloudflare-dns-loadbalancer
 ```
 
-2. Copie os arquivos de configuração:
+3. Copie os arquivos de configuração:
 ```bash
 sudo mkdir -p /opt/cloudflare-failover
 sudo cp config/config.example.env /opt/cloudflare-failover/config.env
@@ -28,12 +38,23 @@ sudo cp scripts/domains.example.txt /opt/cloudflare-failover/domains.txt
 sudo cp scripts/cloudflare_failover.sh /opt/cloudflare-failover/
 ```
 
-3. Edite o arquivo de configuração:
+4. Edite o arquivo de domínios:
+```bash
+sudo nano /opt/cloudflare-failover/domains.txt
+```
+- Coloque um domínio por linha, por exemplo:
+```
+example.com
+sub.example.com
+```
+- Salve e saia. Esses são os nomes que o script irá gerir.
+
+5. Edite o arquivo de configuração:
 ```bash
 nano /opt/cloudflare-failover/config.env
 ```
 
-4. Ative o Timer do systemd:
+6. Ative o Timer do systemd:
 ```bash
 sudo cp systemd/cloudflare-failover.* /etc/systemd/system/
 sudo cp systemd/cloudflare-failover.timer /etc/systemd/system/
@@ -41,12 +62,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cloudflare-failover.timer
 ```
 
-5. Verifique se o timer está ativo:
+7. Verifique se o timer está ativo:
 ```bash
 systemctl status cloudflare-failover.timer
 ```
 
-6. Teste manualmente:
+8. Teste manualmente:
 ```bash
 sudo bash /opt/cloudflare-failover/cloudflare_failover.sh
 ```

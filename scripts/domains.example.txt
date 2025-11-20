@@ -1,4 +1,4 @@
-p2seven.shop
-www.p2seven.shop
-api.p2seven.shop
-painel.p2seven.shop
+example.com
+www.example.shop
+sub.example.shop
+
