@@ -1,4 +1,4 @@
 example.com
-www.example.shop
-sub.example.shop
+www.example.com
+sub.example.com
 
