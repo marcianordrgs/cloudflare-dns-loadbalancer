@@ -1,0 +1,9 @@
+# Arquivos sensíveis
+config/*.env
+*.log
+
+# Arquivos temporários
+*.swp
+*.bak
+*.tmp
+*~

@@ -1,0 +1,10 @@
+[Unit]
+Description=Cloudflare DNS Failover Script
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/cloudflare-failover/cloudflare_failover.sh
+
+[Install]
+WantedBy=multi-user.target
