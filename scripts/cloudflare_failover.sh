@@ -3,33 +3,60 @@
 # Carregar variáveis externas
 source /opt/cloudflare-failover/config.env
 
+# Garantir variáveis obrigatórias e defaults
+TTL_SECONDS=${TTL_SECONDS:-1}
+if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ZONE_ID" ] || [ -z "$DOMAINS_FILE" ]; then
+		echo "Variáveis CF_API_TOKEN, CF_ZONE_ID e DOMAINS_FILE são obrigatórias."
+		exit 1
+fi
+
 DOMAINS=($(cat "$DOMAINS_FILE"))
 
 get_record_id() {
     local domain=$1
     local ip=$2
 
-    curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?type=A&name=$domain&content=$ip" \
+    # Buscar registros para o nome e filtrar pelo conteúdo via jq (evita problemas de encoding/URL)
+    RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?type=A&name=$domain&per_page=100" \
         -H "Authorization: Bearer $CF_API_TOKEN" \
-        -H "Content-Type: application/json" | jq -r '.result[] | .id'
+        -H "Content-Type: application/json")
+
+    echo "$RESPONSE" | jq -r '.result[] | select(.content == "'"$ip"'") | .id' | head -n1
 }
 
 delete_record() {
     local record_id=$1
 
-    curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records/$record_id" \
+    RESPONSE=$(curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records/$record_id" \
         -H "Authorization: Bearer $CF_API_TOKEN" \
-        -H "Content-Type: application/json" > /dev/null
+        -H "Content-Type: application/json")
+
+    if [ "$(echo "$RESPONSE" | jq -r '.success')" != "true" ]; then
+        echo "  Erro removendo registro (ID: $record_id): $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
+    fi
 }
 
 create_record() {
     local domain=$1
     local ip=$2
 
-    curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
+    # Garantir TTL numérico (Cloudflare espera inteiro). Default para 1 (auto) se inválido.
+    if [[ "$TTL_SECONDS" =~ ^[0-9]+$ ]]; then
+        TTL_VAL=$TTL_SECONDS
+    else
+        TTL_VAL=1
+    fi
+
+    RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
         -H "Authorization: Bearer $CF_API_TOKEN" \
         -H "Content-Type: application/json" \
-        --data '{"type":"A","name":"'"$domain"'","content":"'"$ip"'","ttl":'"$TTL_SECONDS"',"proxied":true}' > /dev/null
+        --data '{"type":"A","name":"'"$domain"'","content":"'"$ip"'","ttl":'"$TTL_VAL"',"proxied":true}')
+
+    if [ "$(echo "$RESPONSE" | jq -r '.success')" == "true" ]; then
+        echo "  Registro criado com sucesso para $domain -> $ip"
+    else
+        echo "  Erro criando registro para $domain -> $ip: $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
+    fi
 }
 
 monitor_link() {
