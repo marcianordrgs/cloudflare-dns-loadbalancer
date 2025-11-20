@@ -1,36 +1,37 @@
 # 🌐 Cloudflare DNS Load Balancer
 
-Failover automatizado de DNS usando a API da Cloudflare.
+Automated DNS-based failover and simple load balancing between two internet links using the Cloudflare API.
 
-## ✨ Funcionalidades
+## ✨ Features
 
-- Failover automático entre dois links de internet
-- Verificação por ICMP (ping)
-- Criação e remoção automática de registros A
-- Suporte a múltiplos subdomínios
-- Proxy da Cloudflare ativado automaticamente
-- Integração com systemd.timer
-- Sem dependência de containers
+- Automatic failover between two internet links
+- Basic load balancing by managing DNS A records across two upstream IPs
+- Health checks via ICMP (ping)
+- Automatic creation and removal of A records
+- Support for multiple hostnames/subdomains
+- Cloudflare proxy (CDN) enabled for managed records
+- Integration with systemd.timer for periodic checks
+- No container required
 
-## 🔧 Instalação
+## 🔧 Installation
 
-1. Instale dependências necessárias (ex.: Debian/Ubuntu):
+1. Install required packages (Debian/Ubuntu example):
 ```bash
 sudo apt update
 sudo apt install -y curl jq
 ```
-Para CentOS/RHEL/Fedora use yum/dnf:
+For CentOS/RHEL/Fedora use yum/dnf:
 ```bash
 sudo dnf install -y curl jq
 ```
 
-2. Clone o repositório:
+2. Clone the repository:
 ```bash
 git clone https://github.com/marcianordrgs/cloudflare-dns-loadbalancer.git
 cd cloudflare-dns-loadbalancer
 ```
 
-3. Copie os arquivos de configuração:
+3. Copy configuration and script files:
 ```bash
 sudo mkdir -p /opt/cloudflare-failover
 sudo cp config/config.example.env /opt/cloudflare-failover/config.env
@@ -38,23 +39,24 @@ sudo cp scripts/domains.example.txt /opt/cloudflare-failover/domains.txt
 sudo cp scripts/cloudflare_failover.sh /opt/cloudflare-failover/
 ```
 
-4. Edite o arquivo de domínios:
+4. Edit the domains file
 ```bash
 sudo nano /opt/cloudflare-failover/domains.txt
 ```
-- Coloque um domínio por linha, por exemplo:
+- Add one hostname per line, for example:
 ```
 example.com
 sub.example.com
 ```
-- Salve e saia. Esses são os nomes que o script irá gerir.
+- Save and exit. These are the hostnames the script will manage.
 
-5. Edite o arquivo de configuração:
+5. Edit the Cloudflare config:
 ```bash
-nano /opt/cloudflare-failover/config.env
+sudo nano /opt/cloudflare-failover/config.env
 ```
+- Fill in CF_API_TOKEN, CF_ZONE_ID, IP_LINK1, IP_LINK2.
 
-6. Ative o Timer do systemd:
+6. Install and enable the systemd timer:
 ```bash
 sudo cp systemd/cloudflare-failover.* /etc/systemd/system/
 sudo cp systemd/cloudflare-failover.timer /etc/systemd/system/
@@ -62,16 +64,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cloudflare-failover.timer
 ```
 
-7. Verifique se o timer está ativo:
+7. Verify the timer is active:
 ```bash
 systemctl status cloudflare-failover.timer
 ```
 
-8. Teste manualmente:
+8. Test the script manually:
 ```bash
 sudo bash /opt/cloudflare-failover/cloudflare_failover.sh
 ```
 
-## 📜 Licença
+## 📜 License
 
 MIT License

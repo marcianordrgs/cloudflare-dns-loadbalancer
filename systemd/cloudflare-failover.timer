@@ -1,5 +1,5 @@
 [Unit]
-Description=Executa o Cloudflare Failover a cada 5 minutos
+Description=Run Cloudflare DNS failover and basic load balancing every 5 minutes
 
 [Timer]
 OnBootSec=1min

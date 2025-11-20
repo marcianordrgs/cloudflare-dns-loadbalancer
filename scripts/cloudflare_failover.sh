@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Carregar variáveis externas
+# Load external variables
 source /opt/cloudflare-failover/config.env
 
-# Garantir variáveis obrigatórias e defaults
+# Ensure required variables and defaults
 TTL_SECONDS=${TTL_SECONDS:-1}
 if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ZONE_ID" ] || [ -z "$DOMAINS_FILE" ]; then
-		echo "Variáveis CF_API_TOKEN, CF_ZONE_ID e DOMAINS_FILE são obrigatórias."
+		echo "CF_API_TOKEN, CF_ZONE_ID and DOMAINS_FILE are required."
 		exit 1
 fi
 
@@ -16,7 +16,7 @@ get_record_id() {
     local domain=$1
     local ip=$2
 
-    # Buscar registros para o nome e filtrar pelo conteúdo via jq (evita problemas de encoding/URL)
+    # Fetch records for the name and filter by content via jq (avoids encoding/URL issues)
     RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?type=A&name=$domain&per_page=100" \
         -H "Authorization: Bearer $CF_API_TOKEN" \
         -H "Content-Type: application/json")
@@ -32,7 +32,7 @@ delete_record() {
         -H "Content-Type: application/json")
 
     if [ "$(echo "$RESPONSE" | jq -r '.success')" != "true" ]; then
-        echo "  Erro removendo registro (ID: $record_id): $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
+        echo "  Error removing record (ID: $record_id): $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
     fi
 }
 
@@ -40,7 +40,7 @@ create_record() {
     local domain=$1
     local ip=$2
 
-    # Garantir TTL numérico (Cloudflare espera inteiro). Default para 1 (auto) se inválido.
+    # Ensure TTL is numeric (Cloudflare expects integer). Default to 1 (auto) if invalid.
     if [[ "$TTL_SECONDS" =~ ^[0-9]+$ ]]; then
         TTL_VAL=$TTL_SECONDS
     else
@@ -53,9 +53,9 @@ create_record() {
         --data '{"type":"A","name":"'"$domain"'","content":"'"$ip"'","ttl":'"$TTL_VAL"',"proxied":true}')
 
     if [ "$(echo "$RESPONSE" | jq -r '.success')" == "true" ]; then
-        echo "  Registro criado com sucesso para $domain -> $ip"
+        echo "  Record created successfully for $domain -> $ip"
     else
-        echo "  Erro criando registro para $domain -> $ip: $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
+        echo "  Error creating record for $domain -> $ip: $(echo "$RESPONSE" | jq -r '.errors[]?.message // "unknown")')"
     fi
 }
 
@@ -63,14 +63,14 @@ monitor_link() {
     local link_ip=$1
     local link_name=$2
 
-    echo -n "$(date '+%Y-%m-%d %H:%M:%S') - Verificando $link_name ($link_ip)... "
+    echo -n "$(date '+%Y-%m-%d %H:%M:%S') - Checking $link_name ($link_ip)... "
 
     if ping -c 2 -W 1 $link_ip > /dev/null 2>&1; then
         STATUS="UP"
         echo "ONLINE"
     else
         STATUS="DOWN"
-        echo "CAIU"
+        echo "OFFLINE"
     fi
 
     for domain in "${DOMAINS[@]}"; do
@@ -78,29 +78,29 @@ monitor_link() {
 
         if [ "$STATUS" == "DOWN" ]; then
             if [ -n "$RECORD_ID" ]; then
-                echo "  Removendo registro A de $domain..."
+                echo "  Removing A record for $domain..."
                 delete_record "$RECORD_ID"
             else
-                echo "  Registro já removido para $domain."
+                echo "  Record already removed for $domain."
             fi
         else
             if [ -z "$RECORD_ID" ]; then
-                echo "  Criando registro A para $domain -> $link_ip"
+                echo "  Creating A record for $domain -> $link_ip"
                 create_record "$domain" "$link_ip"
             else
-                echo "  Registro OK para $domain (ID: $RECORD_ID)"
+                echo "  Record OK for $domain (ID: $RECORD_ID)"
             fi
         fi
     done
 }
 
 echo "----------------------------------------------------------"
-echo "$(date '+%Y-%m-%d %H:%M:%S') - Verificação iniciada"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Health check started"
 echo "----------------------------------------------------------"
 
 monitor_link "$IP_LINK1" "Link 1"
 monitor_link "$IP_LINK2" "Link 2"
 
 echo "----------------------------------------------------------"
-echo "$(date '+%Y-%m-%d %H:%M:%S') - Finalizado"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Finished"
 echo "----------------------------------------------------------"

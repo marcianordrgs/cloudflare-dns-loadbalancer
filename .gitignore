@@ -1,13 +1,13 @@
-# Arquivos sensíveis
-config/config.env     # este arquivo você NÃO quer no GitHub
+# Sensitive files
+config/config.env
 
-# Permitir arquivos de exemplo
+# Allow example files
 !config/config.example.env
 
 # Logs
 *.log
 
-# Arquivos temporários
+# Temporary files
 *.swp
 *.bak
 *.tmp
