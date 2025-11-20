@@ -35,7 +35,7 @@ nano /opt/cloudflare-failover/config.env
 
 4. Ative o Timer do systemd:
 ```bash
-sudo cp systemd/cloudflare-failover.* /etc/systemd/system/
+sudo cp systemd/cloudflare-failover.service* /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now cloudflare-failover.timer
 ```
